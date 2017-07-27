@@ -7,6 +7,11 @@ namespace RuntimeGizmos
 {
     public class UserSwitcher
     {
+        public KeyCode SetMoveType = KeyCode.W;
+        public KeyCode SetRotateType = KeyCode.E;
+        public KeyCode SetScaleType = KeyCode.R;
+        public KeyCode SetSpaceToggle = KeyCode.X;
+
         private Protocal protocal { get; set; }
         private AxisSetting setting { get; set; }
         private Transform target { get { return protocal.target; } set { protocal.target = value; } }
@@ -31,16 +36,32 @@ namespace RuntimeGizmos
             this.setting = setting;
         }
 
-        public void Update()
-        {
-            SelectAxis();
-        }
-
         public void SetSpaceAndType(TransformType type, TransformSpace space)
         {
             this.type = type;
             this.space = space;
         }
+        public void Update()
+        {
+            SetSpaceAndType();
+            SelectAxis();
+        }
+
+        public void SetSpaceAndType()
+        {
+            if (Input.GetKeyDown(SetMoveType)) type = TransformType.Move;
+            else if (Input.GetKeyDown(SetRotateType)) type = TransformType.Rotate;
+            else if (Input.GetKeyDown(SetScaleType)) type = TransformType.Scale;
+
+            if (Input.GetKeyDown(SetSpaceToggle))
+            {
+                if (space == TransformSpace.Global) space = TransformSpace.Local;
+                else if (space == TransformSpace.Local) space = TransformSpace.Global;
+            }
+
+            if (type == TransformType.Scale) space = TransformSpace.Local; //Only support local scale
+        }
+     
 
         private void SelectAxis()
         {
