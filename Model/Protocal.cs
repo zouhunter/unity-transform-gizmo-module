@@ -25,6 +25,11 @@ namespace RuntimeGizmos
         public AxisInfo axisInfo;
         public Transform target;
         public Camera myCamera;
+        internal UnityAction<bool> onTransormingStateChanged;
+        internal UnityAction<Vector3> OnPositionChanged;
+        internal UnityAction<Vector3> OnLocalScaleChanged;
+        internal UnityAction<Vector3> OnRotationChanged;
+        internal UnityAction<Vector3, float> OnRotationChangedwithfloat;
 
         //This helps keep the size consistent no matter how far we are from it.
         public float GetDistanceMultiplier()

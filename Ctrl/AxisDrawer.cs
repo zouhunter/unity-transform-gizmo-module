@@ -50,6 +50,7 @@ namespace RuntimeGizmos
 
         public void OnPostRender()
         {
+            if (target == null) return;
             lineMaterial.SetPass(0);
 
             Color xColor = (selectedAxis == Axis.X) ? selectedColor : this.xColor;

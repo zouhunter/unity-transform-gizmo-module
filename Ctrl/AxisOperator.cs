@@ -20,7 +20,11 @@ namespace RuntimeGizmos
         public TransformSpace space { get { return protocal.space; } set { protocal.space = value; } }
         public TransformType type { get { return protocal.type; } set { protocal.type = value; } }
         private System.Func<float> GetDistanceMultiplier { get { return protocal.GetDistanceMultiplier; } }
-
+        private UnityAction<bool> onTransormingStateChanged { get { return protocal.onTransormingStateChanged; } }
+        private UnityAction<Vector3> OnPositionChanged { get { return protocal.OnPositionChanged; } }
+        private UnityAction<Vector3> OnLocalScaleChanged { get { return protocal.OnLocalScaleChanged; } }
+        private UnityAction<Vector3> OnRotationChanged { get { return protocal.OnRotationChanged; } }
+        private UnityAction<Vector3,float> OnRotationChangedwithfloat { get { return protocal.OnRotationChangedwithfloat; } }
         public AxisOperator(MonoBehaviour holder,Protocal protocal, AxisSetting setting)
         {
             this.holder = holder;
@@ -60,11 +64,13 @@ namespace RuntimeGizmos
                 holder.StartCoroutine(TransformSelected(type));
             }
         }
+
         IEnumerator TransformSelected(TransformType type)
         {
             isTransforming = true;
+            if (onTransormingStateChanged != null) onTransormingStateChanged.Invoke(isTransforming);
             totalScaleAmount = 0;
-             totalRotationAmount = Quaternion.identity;
+            totalRotationAmount = Quaternion.identity;
 
             Vector3 originalTargetPosition = target.position;
             Vector3 planeNormal = (myCamera. transform.position - target.position).normalized;
@@ -81,8 +87,9 @@ namespace RuntimeGizmos
                 {
                     if (type == TransformType.Move)
                     {
-                        float moveAmount = GeometryUtil.MagnitudeInDirection(mousePosition - previousMousePosition, projectedAxis) * setting. moveSpeedMultiplier;
+                        float moveAmount = GeometryUtil.MagnitudeInDirection(mousePosition - previousMousePosition, projectedAxis) * setting.moveSpeedMultiplier;
                         target.Translate(axis * moveAmount, Space.World);
+                        if (OnPositionChanged != null) OnPositionChanged(axis * moveAmount);
                     }
 
                     if (type == TransformType.Scale)
@@ -93,8 +100,18 @@ namespace RuntimeGizmos
                         //WARNING - There is a bug in unity 5.4 and 5.5 that causes InverseTransformDirection to be affected by scale which will break negative scaling. Not tested, but updating to 5.4.2 should fix it - https://issuetracker.unity3d.com/issues/transformdirection-and-inversetransformdirection-operations-are-affected-by-scale
                         Vector3 localAxis = (space == TransformSpace.Local && selectedAxis != Axis.Any) ? target.InverseTransformDirection(axis) : axis;
 
-                        if (selectedAxis == Axis.Any) target.localScale += (GeometryUtil.Abs(target.localScale.normalized) * scaleAmount);
-                        else target.localScale += (localAxis * scaleAmount);
+                        if (selectedAxis == Axis.Any)
+                        {
+                            var scaleChange = (GeometryUtil.Abs(target.localScale.normalized) * scaleAmount);
+                            target.localScale += scaleChange;
+                            if (OnLocalScaleChanged != null) OnLocalScaleChanged(scaleChange);
+                        }
+                        else
+                        {
+                            var scaleChange = (localAxis * scaleAmount);
+                            target.localScale += scaleChange;
+                           if(OnLocalScaleChanged != null)  OnLocalScaleChanged(scaleChange);
+                        }
 
                         totalScaleAmount += scaleAmount;
                     }
@@ -103,20 +120,22 @@ namespace RuntimeGizmos
                     {
                         if (selectedAxis == Axis.Any)
                         {
-                            Vector3 rotation = myCamera.transform.TransformDirection(new Vector3(Input.GetAxis("Mouse Y"), -Input.GetAxis("Mouse X"), 0));
-                            target.Rotate(rotation * setting.allRotateSpeedMultiplier, Space.World);
+                            Vector3 rotation =myCamera. transform.TransformDirection(new Vector3(Input.GetAxis("Mouse Y"), -Input.GetAxis("Mouse X"), 0));
+                            var rotationChange = rotation * setting. allRotateSpeedMultiplier;
+                            target.Rotate(rotationChange, Space.World);
+                            if(OnRotationChanged != null) OnRotationChanged(rotationChange);
                             totalRotationAmount *= Quaternion.Euler(rotation * setting.allRotateSpeedMultiplier);
                         }
                         else
                         {
                             Vector3 projected = (selectedAxis == Axis.Any || GeometryUtil.IsParallel(axis, planeNormal)) ? planeNormal : Vector3.Cross(axis, planeNormal);
-                            float rotateAmount = (GeometryUtil.MagnitudeInDirection(mousePosition - previousMousePosition, projected) *setting.rotateSpeedMultiplier) / GetDistanceMultiplier();
+                            float rotateAmount = (GeometryUtil.MagnitudeInDirection(mousePosition - previousMousePosition, projected) * setting.rotateSpeedMultiplier) / GetDistanceMultiplier();
+                            if (OnRotationChangedwithfloat != null) OnRotationChangedwithfloat(axis, rotateAmount);
                             target.Rotate(axis, rotateAmount, Space.World);
                             totalRotationAmount *= Quaternion.Euler(axis * rotateAmount);
                         }
                     }
                 }
-
                 previousMousePosition = mousePosition;
 
                 yield return null;
@@ -125,7 +144,9 @@ namespace RuntimeGizmos
             totalRotationAmount = Quaternion.identity;
             totalScaleAmount = 0;
             isTransforming = false;
+            if (onTransormingStateChanged != null) onTransormingStateChanged.Invoke(isTransforming);
         }
+
         Vector3 GetSelectedAxisDirection()
         {
             if (selectedAxis != Axis.None)
