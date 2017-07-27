@@ -16,6 +16,7 @@ namespace RuntimeGizmos
         public AxisVectors handleSquares = new AxisVectors();
         public AxisVectors circlesLines = new AxisVectors();
         public AxisVectors drawCurrentCirclesLines = new AxisVectors();
+        public AxisVectors selectedLinesBuffer = new AxisVectors();
 
         public bool isTransforming;
         public float totalScaleAmount;
@@ -24,7 +25,6 @@ namespace RuntimeGizmos
         public AxisInfo axisInfo;
         public Transform target;
         public Camera myCamera;
-        public AxisVectors selectedLinesBuffer = new AxisVectors();
 
         //This helps keep the size consistent no matter how far we are from it.
         public float GetDistanceMultiplier()

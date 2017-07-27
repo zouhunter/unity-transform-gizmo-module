@@ -12,16 +12,19 @@ namespace RuntimeGizmos
         public AxisSetting setting;
         public AxisDrawer drawer;
         public AxisOperator opertor;
+        public AutoSwitcher switcher;
         void Awake()
         {
             protocal = new Protocal();
             protocal.myCamera = GetComponent<Camera>();
+            switcher = new AutoSwitcher(protocal, setting);
             drawer = new AxisDrawer(protocal, setting);
             opertor = new AxisOperator(this,protocal, setting);
         }
 
         void Update()
         {
+            switcher.Update();
             opertor.Update();
         }
 

@@ -16,52 +16,70 @@ namespace RuntimeGizmos
 
         static Material lineMaterial;
 
-        private Protocal protocal { get; set; }
+        #region TogatherUseInfo
         private AxisSetting setting { get; set; }
+        private Protocal protocal { get; set; }
+        private Transform target { get { return protocal.target; } }
+        private Axis selectedAxis { get { return protocal.selectedAxis; } }
+        public AxisVectors handleLines { get { return protocal.handleLines; } }
+        public AxisVectors handleTriangles { get { return protocal.handleTriangles; } }
+        public AxisVectors handleSquares { get { return protocal.handleSquares; } }
+        public AxisVectors circlesLines { get { return protocal.circlesLines; } }
+        public AxisVectors drawCurrentCirclesLines { get { return protocal.drawCurrentCirclesLines; } }
+        public AxisVectors selectedLinesBuffer { get { return protocal.selectedLinesBuffer; } }
+        public bool isTransforming { get { return protocal.isTransforming; } }
+        public Quaternion totalRotationAmount { get { return protocal.totalRotationAmount; } }
+        public AxisInfo axisInfo { get { return protocal.axisInfo; } }
+        public Camera myCamera { get { return protocal.myCamera; } }
+        public TransformSpace space { get { return protocal.space; } }
+        public TransformType type { get { return protocal.type; } }
+        private System.Func<float> GetDistanceMultiplier { get { return protocal.GetDistanceMultiplier; } }
+        #endregion
+
         public AxisDrawer(Protocal protocal, AxisSetting setting)
         {
             this.protocal = protocal;
             this.setting = setting;
-            lineMaterial = new Material(Shader.Find("Custom/Lines"));
+            if (lineMaterial == null) lineMaterial = new Material(Shader.Find("Custom/Lines"));
         }
         public void LateUpdate()
         {
-            if (protocal.target == null) return;
+            if (target == null) return;
             SetLines();
         }
 
         public void OnPostRender()
-        { 
+        {
             lineMaterial.SetPass(0);
 
-            Color xColor = (protocal.selectedAxis == Axis.X) ? selectedColor : this.xColor;
-            Color yColor = (protocal.selectedAxis == Axis.Y) ? selectedColor : this.yColor;
-            Color zColor = (protocal.selectedAxis == Axis.Z) ? selectedColor : this.zColor;
-            Color allColor = (protocal.selectedAxis == Axis.Any) ? selectedColor : this.allColor;
+            Color xColor = (selectedAxis == Axis.X) ? selectedColor : this.xColor;
+            Color yColor = (selectedAxis == Axis.Y) ? selectedColor : this.yColor;
+            Color zColor = (selectedAxis == Axis.Z) ? selectedColor : this.zColor;
+            Color allColor = (selectedAxis == Axis.Any) ? selectedColor : this.allColor;
 
-            DrawLines(protocal.handleLines.x, xColor);
-            DrawLines(protocal.handleLines.y, yColor);
-            DrawLines(protocal.handleLines.z, zColor);
+            DrawLines(handleLines.x, xColor);
+            DrawLines(handleLines.y, yColor);
+            DrawLines(handleLines.z, zColor);
 
-            DrawTriangles(protocal.handleTriangles.x, xColor);
-            DrawTriangles(protocal.handleTriangles.y, yColor);
-            DrawTriangles(protocal.handleTriangles.z, zColor);
+            DrawTriangles(handleTriangles.x, xColor);
+            DrawTriangles(handleTriangles.y, yColor);
+            DrawTriangles(handleTriangles.z, zColor);
 
-            DrawSquares(protocal.handleSquares.x, xColor);
-            DrawSquares(protocal.handleSquares.y, yColor);
-            DrawSquares(protocal.handleSquares.z, zColor);
-            DrawSquares(protocal.handleSquares.all, allColor);
+            DrawSquares(handleSquares.x, xColor);
+            DrawSquares(handleSquares.y, yColor);
+            DrawSquares(handleSquares.z, zColor);
+            DrawSquares(handleSquares.all, allColor);
 
-            AxisVectors rotationAxisVector = protocal.circlesLines;
-            if (protocal.isTransforming && protocal.space == TransformSpace.Global && protocal.type == TransformType.Rotate)
+            AxisVectors rotationAxisVector = circlesLines;
+            if (isTransforming && space == TransformSpace.Global && type == TransformType.Rotate)
             {
-                rotationAxisVector = protocal.drawCurrentCirclesLines;
+                rotationAxisVector = drawCurrentCirclesLines;
 
                 AxisInfo axisInfo = new AxisInfo();
-                axisInfo.xDirection = protocal. totalRotationAmount * Vector3.right;
-                axisInfo.yDirection = protocal.totalRotationAmount * Vector3.up;
-                axisInfo.zDirection = protocal.totalRotationAmount * Vector3.forward;
-                SetCircles(axisInfo, protocal.drawCurrentCirclesLines);
+                axisInfo.xDirection = totalRotationAmount * Vector3.right;
+                axisInfo.yDirection = totalRotationAmount * Vector3.up;
+                axisInfo.zDirection = totalRotationAmount * Vector3.forward;
+                SetCircles(axisInfo, drawCurrentCirclesLines);
             }
 
             DrawCircles(rotationAxisVector.x, xColor);
@@ -75,34 +93,34 @@ namespace RuntimeGizmos
             SetHandleLines();
             SetHandleTriangles();
             SetHandleSquares();
-            SetCircles(protocal.axisInfo, protocal.circlesLines);
+            SetCircles(axisInfo, circlesLines);
         }
 
         void SetHandleLines()
         {
-            protocal.handleLines.Clear();
+            handleLines.Clear();
 
-            if (protocal.type == TransformType.Move || protocal.type == TransformType.Scale)
+            if (type == TransformType.Move || type == TransformType.Scale)
             {
-                protocal.handleLines.x.Add(protocal.target.position);
-                protocal.handleLines.x.Add(protocal.axisInfo.xAxisEnd);
-                protocal.handleLines.y.Add(protocal.target.position);
-                protocal.handleLines.y.Add(protocal.axisInfo.yAxisEnd);
-                protocal.handleLines.z.Add(protocal.target.position);
-                protocal.handleLines.z.Add(protocal.axisInfo.zAxisEnd);
+                handleLines.x.Add(target.position);
+                handleLines.x.Add(axisInfo.xAxisEnd);
+                handleLines.y.Add(target.position);
+                handleLines.y.Add(axisInfo.yAxisEnd);
+                handleLines.z.Add(target.position);
+                handleLines.z.Add(axisInfo.zAxisEnd);
             }
         }
 
         void SetHandleTriangles()
         {
-            protocal.handleTriangles.Clear();
+            handleTriangles.Clear();
 
-            if (protocal.type == TransformType.Move)
+            if (type == TransformType.Move)
             {
-                float triangleLength =setting.triangleSize * protocal.GetDistanceMultiplier();
-                AddTriangles(protocal.axisInfo.xAxisEnd, protocal.axisInfo.xDirection, protocal.axisInfo.yDirection, protocal.axisInfo.zDirection, triangleLength, protocal.handleTriangles.x);
-                AddTriangles(protocal.axisInfo.yAxisEnd, protocal.axisInfo.yDirection, protocal.axisInfo.xDirection, protocal.axisInfo.zDirection, triangleLength, protocal.handleTriangles.y);
-                AddTriangles(protocal.axisInfo.zAxisEnd, protocal.axisInfo.zDirection, protocal.axisInfo.yDirection, protocal.axisInfo.xDirection, triangleLength, protocal.handleTriangles.z);
+                float triangleLength = setting.triangleSize * GetDistanceMultiplier();
+                AddTriangles(axisInfo.xAxisEnd, axisInfo.xDirection, axisInfo.yDirection, axisInfo.zDirection, triangleLength, handleTriangles.x);
+                AddTriangles(axisInfo.yAxisEnd, axisInfo.yDirection, axisInfo.xDirection, axisInfo.zDirection, triangleLength, handleTriangles.y);
+                AddTriangles(axisInfo.zAxisEnd, axisInfo.zDirection, axisInfo.yDirection, axisInfo.xDirection, triangleLength, handleTriangles.z);
             }
         }
 
@@ -128,15 +146,15 @@ namespace RuntimeGizmos
 
         void SetHandleSquares()
         {
-            protocal.handleSquares.Clear();
+            handleSquares.Clear();
 
-            if (protocal.type == TransformType.Scale)
+            if (type == TransformType.Scale)
             {
-                float boxLength =setting. boxSize * protocal. GetDistanceMultiplier();
-                AddSquares(protocal.axisInfo.xAxisEnd, protocal.axisInfo.xDirection, protocal.axisInfo.yDirection, protocal.axisInfo.zDirection, boxLength, protocal.handleSquares.x);
-                AddSquares(protocal.axisInfo.yAxisEnd, protocal.axisInfo.yDirection, protocal.axisInfo.xDirection, protocal.axisInfo.zDirection, boxLength, protocal.handleSquares.y);
-                AddSquares(protocal.axisInfo.zAxisEnd, protocal.axisInfo.zDirection, protocal.axisInfo.xDirection, protocal.axisInfo.yDirection, boxLength, protocal.handleSquares.z);
-                AddSquares(protocal.target.position - (protocal.axisInfo.xDirection * boxLength), protocal.axisInfo.xDirection, protocal.axisInfo.yDirection, protocal.axisInfo.zDirection, boxLength, protocal.handleSquares.all);
+                float boxLength = setting.boxSize * GetDistanceMultiplier();
+                AddSquares(axisInfo.xAxisEnd, axisInfo.xDirection, axisInfo.yDirection, axisInfo.zDirection, boxLength, handleSquares.x);
+                AddSquares(axisInfo.yAxisEnd, axisInfo.yDirection, axisInfo.xDirection, axisInfo.zDirection, boxLength, handleSquares.y);
+                AddSquares(axisInfo.zAxisEnd, axisInfo.zDirection, axisInfo.xDirection, axisInfo.yDirection, boxLength, handleSquares.z);
+                AddSquares(target.position - (axisInfo.xDirection * boxLength), axisInfo.xDirection, axisInfo.yDirection, axisInfo.zDirection, boxLength, handleSquares.all);
             }
         }
 
@@ -181,13 +199,13 @@ namespace RuntimeGizmos
         {
             axisVectors.Clear();
 
-            if (protocal. type == TransformType.Rotate)
+            if (type == TransformType.Rotate)
             {
-                float circleLength =setting. handleLength * protocal.GetDistanceMultiplier();
-                AddCircle(protocal.target.position, axisInfo.xDirection, circleLength, axisVectors.x);
-                AddCircle(protocal.target.position, axisInfo.yDirection, circleLength, axisVectors.y);
-                AddCircle(protocal.target.position, axisInfo.zDirection, circleLength, axisVectors.z);
-                AddCircle(protocal.target.position, (protocal.target.position - protocal.myCamera.transform.position).normalized, circleLength, axisVectors.all, false);
+                float circleLength = setting.handleLength * GetDistanceMultiplier();
+                AddCircle(target.position, axisInfo.xDirection, circleLength, axisVectors.x);
+                AddCircle(target.position, axisInfo.yDirection, circleLength, axisVectors.y);
+                AddCircle(target.position, axisInfo.zDirection, circleLength, axisVectors.z);
+                AddCircle(target.position, (target.position - myCamera.transform.position).normalized, circleLength, axisVectors.all, false);
             }
         }
 
@@ -213,11 +231,11 @@ namespace RuntimeGizmos
 
             Vector3 lastPoint = origin + matrix.MultiplyPoint3x4(new Vector3(Mathf.Cos(0), 0, Mathf.Sin(0)));
             Vector3 nextPoint = Vector3.zero;
-            float multiplier = 360f /setting. circleDetail;
+            float multiplier = 360f / setting.circleDetail;
 
-            Plane plane = new Plane((protocal.myCamera.transform.position - protocal.target.position).normalized, protocal.target.position);
+            Plane plane = new Plane((myCamera.transform.position - target.position).normalized, target.position);
 
-            for (var i = 0; i <setting.circleDetail + 1; i++)
+            for (var i = 0; i < setting.circleDetail + 1; i++)
             {
                 nextPoint.x = Mathf.Cos((i * multiplier) * Mathf.Deg2Rad);
                 nextPoint.z = Mathf.Sin((i * multiplier) * Mathf.Deg2Rad);
