@@ -154,25 +154,25 @@ namespace RuntimeGizmos
 			while(!Input.GetMouseButtonUp(0))
 			{
 				Ray mouseRay = myCamera.ScreenPointToRay(Input.mousePosition);
-				Vector3 mousePosition = Geometry.LinePlaneIntersect(mouseRay.origin, mouseRay.direction, originalTargetPosition, planeNormal);
+				Vector3 mousePosition = GeometryUtil.LinePlaneIntersect(mouseRay.origin, mouseRay.direction, originalTargetPosition, planeNormal);
 
 				if(previousMousePosition != Vector3.zero && mousePosition != Vector3.zero)
-				{
+                { 
 					if(type == TransformType.Move)
 					{
-						float moveAmount = ExtVector3.MagnitudeInDirection(mousePosition - previousMousePosition, projectedAxis) * moveSpeedMultiplier;
+						float moveAmount = GeometryUtil.MagnitudeInDirection(mousePosition - previousMousePosition, projectedAxis) * moveSpeedMultiplier;
 						target.Translate(axis * moveAmount, Space.World);
 					}
 
 					if(type == TransformType.Scale)
 					{
 						Vector3 projected = (selectedAxis == Axis.Any) ? transform.right : projectedAxis;
-						float scaleAmount = ExtVector3.MagnitudeInDirection(mousePosition - previousMousePosition, projected) * scaleSpeedMultiplier;
+						float scaleAmount = GeometryUtil.MagnitudeInDirection(mousePosition - previousMousePosition, projected) * scaleSpeedMultiplier;
 						
 						//WARNING - There is a bug in unity 5.4 and 5.5 that causes InverseTransformDirection to be affected by scale which will break negative scaling. Not tested, but updating to 5.4.2 should fix it - https://issuetracker.unity3d.com/issues/transformdirection-and-inversetransformdirection-operations-are-affected-by-scale
 						Vector3 localAxis = (space == TransformSpace.Local && selectedAxis != Axis.Any) ? target.InverseTransformDirection(axis) : axis;
 						
-						if(selectedAxis == Axis.Any) target.localScale += (ExtVector3.Abs(target.localScale.normalized) * scaleAmount);
+						if(selectedAxis == Axis.Any) target.localScale += (GeometryUtil.Abs(target.localScale.normalized) * scaleAmount);
 						else target.localScale += (localAxis * scaleAmount);
 					
 						totalScaleAmount += scaleAmount;
@@ -186,8 +186,8 @@ namespace RuntimeGizmos
 							target.Rotate(rotation * allRotateSpeedMultiplier, Space.World);
 							totalRotationAmount *= Quaternion.Euler(rotation * allRotateSpeedMultiplier);
 						}else{
-							Vector3 projected = (selectedAxis == Axis.Any || ExtVector3.IsParallel(axis, planeNormal)) ? planeNormal : Vector3.Cross(axis, planeNormal);
-							float rotateAmount = (ExtVector3.MagnitudeInDirection(mousePosition - previousMousePosition, projected) * rotateSpeedMultiplier) / GetDistanceMultiplier();
+							Vector3 projected = (selectedAxis == Axis.Any || GeometryUtil.IsParallel(axis, planeNormal)) ? planeNormal : Vector3.Cross(axis, planeNormal);
+							float rotateAmount = (GeometryUtil.MagnitudeInDirection(mousePosition - previousMousePosition, projected) * rotateSpeedMultiplier) / GetDistanceMultiplier();
 							target.Rotate(axis, rotateAmount, Space.World);
 							totalRotationAmount *= Quaternion.Euler(axis * rotateAmount);
 						}
@@ -269,8 +269,8 @@ namespace RuntimeGizmos
 			else if(type == TransformType.Rotate && target != null)
 			{
 				Ray mouseRay = myCamera.ScreenPointToRay(Input.mousePosition);
-				Vector3 mousePlaneHit = Geometry.LinePlaneIntersect(mouseRay.origin, mouseRay.direction, target.position, (transform.position - target.position).normalized);
-				if((target.position - mousePlaneHit).sqrMagnitude <= (handleLength * GetDistanceMultiplier()).Squared()) selectedAxis = Axis.Any;
+				Vector3 mousePlaneHit = GeometryUtil.LinePlaneIntersect(mouseRay.origin, mouseRay.direction, target.position, (transform.position - target.position).normalized);
+				if((target.position - mousePlaneHit).sqrMagnitude <= Mathf.Pow((handleLength * GetDistanceMultiplier()),2)) selectedAxis = Axis.Any;
 			}
 		}
 
@@ -281,7 +281,7 @@ namespace RuntimeGizmos
 			float closestDistance = float.MaxValue;
 			for(int i = 0; i < lines.Count; i += 2)
 			{
-				IntersectPoints points = Geometry.ClosestPointsOnSegmentToLine(lines[i], lines[i + 1], mouseRay.origin, mouseRay.direction);
+				IntersectPoints points = GeometryUtil.ClosestPointsOnSegmentToLine(lines[i], lines[i + 1], mouseRay.origin, mouseRay.direction);
 				float distance = Vector3.Distance(points.first, points.second);
 				if(distance < closestDistance)
 				{
@@ -309,7 +309,7 @@ namespace RuntimeGizmos
 		float GetDistanceMultiplier()
 		{
 			if(target == null) return 0f;
-			return Mathf.Max(.01f, Mathf.Abs(ExtVector3.MagnitudeInDirection(target.position - transform.position, myCamera.transform.forward)));
+			return Mathf.Max(.01f, Mathf.Abs(GeometryUtil.MagnitudeInDirection(target.position - transform.position, myCamera.transform.forward)));
 		}
 
 		void SetLines()

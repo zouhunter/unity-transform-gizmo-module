@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace RuntimeGizmos
 {
+    /// <summary>
+    /// 3轴绘制信息
+    /// </summary>
 	public class AxisVectors
 	{
 		public List<Vector3> x = new List<Vector3>();

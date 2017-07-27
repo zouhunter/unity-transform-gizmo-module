@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace RuntimeGizmos
 {
+    /// <summary>
+    /// 始末点组
+    /// </summary>
 	public struct IntersectPoints
 	{
 		public Vector3 first;

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace RuntimeGizmos
 {
+    /// <summary>
+    /// 方块信息
+    /// </summary>
 	public struct Square
 	{
 		public Vector3 bottomLeft;
