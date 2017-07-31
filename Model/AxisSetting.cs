@@ -17,5 +17,6 @@ namespace RuntimeGizmos
        public float scaleSpeedMultiplier = 1f;
        public float rotateSpeedMultiplier = 200f;
        public float allRotateSpeedMultiplier = 20f;
+       public EnableState enableState;
     }
 }

@@ -33,7 +33,7 @@ namespace RuntimeGizmos
         public Camera myCamera { get { return protocal.myCamera; } }
         public TransformSpace space { get { return protocal.space; } }
         public TransformType type { get { return protocal.type; } }
-        private System.Func<float> GetDistanceMultiplier { get { return protocal.GetDistanceMultiplier; } }
+        private float DistanceMultiplier { get { return protocal.DistanceMultiplier; } }
         #endregion
 
         public AxisDrawer(Protocal protocal, AxisSetting setting)
@@ -42,13 +42,22 @@ namespace RuntimeGizmos
             this.setting = setting;
             if (lineMaterial == null) lineMaterial = new Material(Shader.Find("Custom/Lines"));
         }
-        public void LateUpdate()
+
+        /// <summary>
+        /// 在LateUpdate中执行，尝试设置绘制信息
+        /// </summary>
+        public void TrySetLines()
         {
             if (target == null) return;
-            SetLines();
+            SetHandleLines();
+            SetHandleTriangles();
+            SetHandleSquares();
+            SetCircles(axisInfo, circlesLines);
         }
-
-        public void OnPostRender()
+        /// <summary>
+        /// 在OnPostRender中执行，尝试绘制出可操作范围
+        /// </summary>
+        public void TryDrawing()
         {
             if (target == null) return;
             lineMaterial.SetPass(0);
@@ -89,24 +98,48 @@ namespace RuntimeGizmos
             DrawCircles(rotationAxisVector.all, allColor);
         }
 
-        void SetLines()
-        {
-            SetHandleLines();
-            SetHandleTriangles();
-            SetHandleSquares();
-            SetCircles(axisInfo, circlesLines);
-        }
-
         void SetHandleLines()
         {
             handleLines.Clear();
 
-            if (type == TransformType.Move || type == TransformType.Scale)
+            if (type == TransformType.Move)
+            {
+                if (setting.enableState == EnableState.Normal)
+                {
+                    handleLines.x.Add(target.position);
+                    handleLines.x.Add(axisInfo.xAxisEnd);
+
+                    handleLines.y.Add(target.position);
+                    handleLines.y.Add(axisInfo.yAxisEnd);
+
+                    handleLines.z.Add(target.position);
+                    handleLines.z.Add(axisInfo.zAxisEnd);
+                }
+                else if (setting.enableState == EnableState.Clamp)
+                {
+                    var endPosx = (target.position + axisInfo.xAxisEnd) * 0.5f;
+                    var startPosx = (target.position * 2 - endPosx);
+                    handleLines.x.Add(startPosx);
+                    handleLines.x.Add(endPosx);
+                    if (setting.enableState == EnableState.Normal)
+                    {
+                        handleLines.y.Add(target.position);
+                        handleLines.y.Add(axisInfo.yAxisEnd);
+                    }
+                    var endPosz = (target.position + axisInfo.zAxisEnd) * 0.5f;
+                    var startPosz = (target.position * 2 - endPosz);
+                    handleLines.z.Add(startPosz);
+                    handleLines.z.Add(endPosz);
+                }
+            }
+            else if (type == TransformType.Scale && setting.enableState == EnableState.Normal)
             {
                 handleLines.x.Add(target.position);
                 handleLines.x.Add(axisInfo.xAxisEnd);
+
                 handleLines.y.Add(target.position);
                 handleLines.y.Add(axisInfo.yAxisEnd);
+
                 handleLines.z.Add(target.position);
                 handleLines.z.Add(axisInfo.zAxisEnd);
             }
@@ -118,10 +151,21 @@ namespace RuntimeGizmos
 
             if (type == TransformType.Move)
             {
-                float triangleLength = setting.triangleSize * GetDistanceMultiplier();
-                AddTriangles(axisInfo.xAxisEnd, axisInfo.xDirection, axisInfo.yDirection, axisInfo.zDirection, triangleLength, handleTriangles.x);
-                AddTriangles(axisInfo.yAxisEnd, axisInfo.yDirection, axisInfo.xDirection, axisInfo.zDirection, triangleLength, handleTriangles.y);
-                AddTriangles(axisInfo.zAxisEnd, axisInfo.zDirection, axisInfo.yDirection, axisInfo.xDirection, triangleLength, handleTriangles.z);
+                float triangleLength = setting.triangleSize * DistanceMultiplier;
+                if (setting.enableState == EnableState.Normal)
+                {
+                    AddTriangles(axisInfo.xAxisEnd, axisInfo.xDirection, axisInfo.yDirection, axisInfo.zDirection, triangleLength, handleTriangles.x);
+                    AddTriangles(axisInfo.yAxisEnd, axisInfo.yDirection, axisInfo.xDirection, axisInfo.zDirection, triangleLength, handleTriangles.y);
+                    AddTriangles(axisInfo.zAxisEnd, axisInfo.zDirection, axisInfo.yDirection, axisInfo.xDirection, triangleLength, handleTriangles.z);
+                }
+                else
+                {
+                    var endPosx = (target.position + axisInfo.xAxisEnd) * 0.5f;
+                    var endPosz = (target.position + axisInfo.zAxisEnd) * 0.5f;
+
+                    AddTriangles(endPosx, axisInfo.xDirection, axisInfo.yDirection, axisInfo.zDirection, triangleLength, handleTriangles.x);
+                    AddTriangles(endPosz, axisInfo.zDirection, axisInfo.yDirection, axisInfo.xDirection, triangleLength, handleTriangles.z);
+                }
             }
         }
 
@@ -151,10 +195,13 @@ namespace RuntimeGizmos
 
             if (type == TransformType.Scale)
             {
-                float boxLength = setting.boxSize * GetDistanceMultiplier();
-                AddSquares(axisInfo.xAxisEnd, axisInfo.xDirection, axisInfo.yDirection, axisInfo.zDirection, boxLength, handleSquares.x);
-                AddSquares(axisInfo.yAxisEnd, axisInfo.yDirection, axisInfo.xDirection, axisInfo.zDirection, boxLength, handleSquares.y);
-                AddSquares(axisInfo.zAxisEnd, axisInfo.zDirection, axisInfo.xDirection, axisInfo.yDirection, boxLength, handleSquares.z);
+                float boxLength = setting.boxSize * DistanceMultiplier;
+                if (setting.enableState == EnableState.Normal)
+                {
+                    AddSquares(axisInfo.xAxisEnd, axisInfo.xDirection, axisInfo.yDirection, axisInfo.zDirection, boxLength, handleSquares.x);
+                    AddSquares(axisInfo.yAxisEnd, axisInfo.yDirection, axisInfo.xDirection, axisInfo.zDirection, boxLength, handleSquares.y);
+                    AddSquares(axisInfo.zAxisEnd, axisInfo.zDirection, axisInfo.xDirection, axisInfo.yDirection, boxLength, handleSquares.z);
+                }
                 AddSquares(target.position - (axisInfo.xDirection * boxLength), axisInfo.xDirection, axisInfo.yDirection, axisInfo.zDirection, boxLength, handleSquares.all);
             }
         }
@@ -202,11 +249,14 @@ namespace RuntimeGizmos
 
             if (type == TransformType.Rotate)
             {
-                float circleLength = setting.handleLength * GetDistanceMultiplier();
-                AddCircle(target.position, axisInfo.xDirection, circleLength, axisVectors.x);
+                float circleLength = setting.handleLength * DistanceMultiplier;
+                if (setting.enableState == EnableState.Normal)
+                {
+                    AddCircle(target.position, axisInfo.xDirection, circleLength, axisVectors.x);
+                    AddCircle(target.position, axisInfo.zDirection, circleLength, axisVectors.z);
+                    AddCircle(target.position, (target.position - myCamera.transform.position).normalized, circleLength, axisVectors.all, false);
+                }
                 AddCircle(target.position, axisInfo.yDirection, circleLength, axisVectors.y);
-                AddCircle(target.position, axisInfo.zDirection, circleLength, axisVectors.z);
-                AddCircle(target.position, (target.position - myCamera.transform.position).normalized, circleLength, axisVectors.all, false);
             }
         }
 
@@ -244,7 +294,7 @@ namespace RuntimeGizmos
 
                 nextPoint = origin + matrix.MultiplyPoint3x4(nextPoint);
 
-                if (!depthTest || plane.GetSide(lastPoint))
+                if (!depthTest || plane.GetSide(lastPoint)|| setting.enableState == EnableState.Clamp)
                 {
                     resultsBuffer.Add(lastPoint);
                     resultsBuffer.Add(nextPoint);

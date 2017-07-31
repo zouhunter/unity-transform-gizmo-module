@@ -5,7 +5,7 @@ using UnityEngine.Events;
 using UnityEngine;
 namespace RuntimeGizmos
 {
-    public class UserSwitcher
+    public class AxisSwitcher
     {
         public KeyCode SetMoveType = KeyCode.W;
         public KeyCode SetRotateType = KeyCode.E;
@@ -28,9 +28,9 @@ namespace RuntimeGizmos
         public Camera myCamera { get { return protocal.myCamera; } }
         public TransformSpace space { get { return protocal.space; } set { protocal.space = value; } }
         public TransformType type { get { return protocal.type; } set { protocal.type = value; } }
-        private System.Func<float> GetDistanceMultiplier { get { return protocal.GetDistanceMultiplier; } }
+        private float DistanceMultiplier { get { return protocal.DistanceMultiplier; } }
 
-        public UserSwitcher(Protocal protocal, AxisSetting setting)
+        public AxisSwitcher(Protocal protocal, AxisSetting setting)
         {
             this.protocal = protocal;
             this.setting = setting;
@@ -41,13 +41,14 @@ namespace RuntimeGizmos
             this.type = type;
             this.space = space;
         }
-        public void Update()
+
+        public void QuickSwitchAndSelect()
         {
             SetSpaceAndType();
             SelectAxis();
         }
 
-        public void SetSpaceAndType()
+        private void SetSpaceAndType()
         {
             if (Input.GetKeyDown(SetMoveType)) type = TransformType.Move;
             else if (Input.GetKeyDown(SetRotateType)) type = TransformType.Rotate;
@@ -59,9 +60,11 @@ namespace RuntimeGizmos
                 else if (space == TransformSpace.Local) space = TransformSpace.Global;
             }
 
-            if (type == TransformType.Scale) space = TransformSpace.Local; //Only support local scale
+            if (type == TransformType.Scale)
+            {
+                space = TransformSpace.Local; //Only support local scale
+            }
         }
-     
 
         private void SelectAxis()
         {
@@ -72,14 +75,21 @@ namespace RuntimeGizmos
             float yClosestDistance = float.MaxValue;
             float zClosestDistance = float.MaxValue;
             float allClosestDistance = float.MaxValue;
-            float minSelectedDistanceCheck = setting.minSelectedDistanceCheck * GetDistanceMultiplier();
+
+            float minSelectedDistanceCheck = setting.minSelectedDistanceCheck * DistanceMultiplier;
 
             if (type == TransformType.Move || type == TransformType.Scale)
             {
                 selectedLinesBuffer.Clear();
                 selectedLinesBuffer.Add(handleLines);
-                if (type == TransformType.Move) selectedLinesBuffer.Add(handleTriangles);
-                else if (type == TransformType.Scale) selectedLinesBuffer.Add(handleSquares);
+                if (type == TransformType.Move)
+                {
+                    selectedLinesBuffer.Add(handleTriangles);
+                }
+                else if (type == TransformType.Scale)
+                {
+                    selectedLinesBuffer.Add(handleSquares);
+                }
 
                 xClosestDistance = ClosestDistanceFromMouseToLines(selectedLinesBuffer.x);
                 yClosestDistance = ClosestDistanceFromMouseToLines(selectedLinesBuffer.y);
@@ -94,18 +104,34 @@ namespace RuntimeGizmos
                 allClosestDistance = ClosestDistanceFromMouseToLines(circlesLines.all);
             }
 
-            if (type == TransformType.Scale && allClosestDistance <= minSelectedDistanceCheck) selectedAxis = Axis.Any;
-            else if (xClosestDistance <= minSelectedDistanceCheck && xClosestDistance <= yClosestDistance && xClosestDistance <= zClosestDistance) selectedAxis = Axis.X;
-            else if (yClosestDistance <= minSelectedDistanceCheck && yClosestDistance <= xClosestDistance && yClosestDistance <= zClosestDistance) selectedAxis = Axis.Y;
-            else if (zClosestDistance <= minSelectedDistanceCheck && zClosestDistance <= xClosestDistance && zClosestDistance <= yClosestDistance) selectedAxis = Axis.Z;
+            if (type == TransformType.Scale && allClosestDistance <= minSelectedDistanceCheck)
+            {
+                selectedAxis = Axis.Any;
+            }
+            else if (xClosestDistance <= minSelectedDistanceCheck && xClosestDistance <= yClosestDistance && xClosestDistance <= zClosestDistance)
+            {
+                selectedAxis = Axis.X;
+            }
+            else if (yClosestDistance <= minSelectedDistanceCheck && yClosestDistance <= xClosestDistance && yClosestDistance <= zClosestDistance)
+            {
+                selectedAxis = Axis.Y;
+            }
+            else if (zClosestDistance <= minSelectedDistanceCheck && zClosestDistance <= xClosestDistance && zClosestDistance <= yClosestDistance)
+            {
+                selectedAxis = Axis.Z;
+            }
             else if (type == TransformType.Rotate && target != null)
             {
                 Ray mouseRay = myCamera.ScreenPointToRay(Input.mousePosition);
                 Vector3 mousePlaneHit = GeometryUtil.LinePlaneIntersect(mouseRay.origin, mouseRay.direction, target.position, (myCamera.transform.position - target.position).normalized);
-                if ((target.position - mousePlaneHit).sqrMagnitude <= Mathf.Pow((setting.handleLength * GetDistanceMultiplier()), 2)) selectedAxis = Axis.Any;
+                if ((target.position - mousePlaneHit).sqrMagnitude <= Mathf.Pow((setting.handleLength * DistanceMultiplier), 2))
+                {
+                    selectedAxis = Axis.Any;
+                }
             }
         }
-        float ClosestDistanceFromMouseToLines(List<Vector3> lines)
+
+        private float ClosestDistanceFromMouseToLines(List<Vector3> lines)
         {
             Ray mouseRay = myCamera.ScreenPointToRay(Input.mousePosition);
 
